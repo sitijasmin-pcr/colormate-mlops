@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from backend.app.config import settings
-
+from backend.app.api.routes import router
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -9,20 +9,4 @@ app = FastAPI(
     debug=settings.DEBUG
 )
 
-
-@app.get("/")
-def root():
-    return {
-        "message": "Welcome to ColorMate API!",
-        "project": "ColorMate MLOps",
-        "version": settings.APP_VERSION,
-        "status": "running"
-    }
-
-
-@app.get("/health")
-def health_check():
-    return {
-        "status": "healthy",
-        "application": settings.APP_NAME
-    }
+app.include_router(router)
