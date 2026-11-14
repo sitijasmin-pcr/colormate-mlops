@@ -1,0 +1,41 @@
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Environment variables
+.env
+.env.*
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Model artifacts
+*.pt
+*.pth
+*.onnx
+
+# Dataset
+data/raw/
+data/processed/
+data/external/
+
+# DVC cache
+.dvc/cache/
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
