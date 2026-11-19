@@ -43,3 +43,6 @@ Thumbs.db
 
 # Dataset audit generated reports
 reports/dataset_audit/*.png
+
+# Generated dataset audit artifacts
+reports/dataset_audit/
