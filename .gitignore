@@ -46,3 +46,6 @@ reports/dataset_audit/*.png
 
 # Generated dataset audit artifacts
 reports/dataset_audit/
+
+# Face audit virtual environment
+.venv-face-audit/
