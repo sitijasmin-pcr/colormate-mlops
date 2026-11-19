@@ -40,3 +40,6 @@ data/external/
 # OS
 .DS_Store
 Thumbs.db
+
+# Dataset audit generated reports
+reports/dataset_audit/*.png
