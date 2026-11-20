@@ -244,12 +244,15 @@ model.eval()
 print("\nModel loaded successfully.")
 
 
+
 # =========================================================
 # PREDICTION
 # =========================================================
 
 all_targets = []
 all_predictions = []
+all_confidences = []
+all_probabilities = []
 
 print("\nRunning validation predictions...")
 
@@ -257,15 +260,42 @@ with torch.no_grad():
     for images, labels in validation_loader:
 
         images = images.to(DEVICE)
+
         outputs = model(images)
 
-        predictions = torch.argmax(outputs, dim=1)
+        # Convert logits into class probabilities.
+        probabilities = torch.softmax(outputs, dim=1)
+
+        # Get predicted class and its confidence.
+        confidences, predictions = torch.max(
+            probabilities,
+            dim=1
+        )
 
         all_targets.extend(labels.numpy().tolist())
+
         all_predictions.extend(
             predictions.cpu().numpy().tolist()
         )
 
+        all_confidences.extend(
+            confidences.cpu().numpy().tolist()
+        )
+
+        all_probabilities.extend(
+            probabilities.cpu().numpy().tolist()
+        )
+
+    # Convert probability results into a DataFrame.
+    probability_columns = [
+        f"prob_{class_name}"
+        for class_name in class_names
+    ]
+
+    probability_df = pd.DataFrame(
+        all_probabilities,
+        columns=probability_columns
+    )
 
 # =========================================================
 # METRICS
@@ -365,6 +395,7 @@ plt.savefig(
 plt.close(fig)
 
 
+
 # =========================================================
 # SAVE PREDICTIONS
 # =========================================================
@@ -378,18 +409,30 @@ prediction_df["predicted_label"] = [
     for pred in all_predictions
 ]
 
+prediction_df["confidence"] = all_confidences
+
 prediction_df["correct"] = (
     prediction_df["label_id"]
     == prediction_df["predicted_label_id"]
 )
 
-prediction_path = OUTPUT_DIR / "baseline_validation_predictions.csv"
+# Add probabilities for all 12 classes.
+prediction_df = pd.concat(
+    [
+        prediction_df.reset_index(drop=True),
+        probability_df
+    ],
+    axis=1
+)
+
+prediction_path = (
+    OUTPUT_DIR / "baseline_validation_predictions.csv"
+)
 
 prediction_df.to_csv(
     prediction_path,
     index=False
 )
-
 
 # =========================================================
 # SUMMARY
