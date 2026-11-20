@@ -1,0 +1,7 @@
+{
+    "experiment": "ResNet18 Experiment 01",
+    "best_val_loss": 1.6840806032481948,
+    "best_epoch": 3,
+    "checkpoint": "D:\\JasminSIKD\\colormate-mlops\\models\\checkpoints\\colormate_resnet18_experiment01.pt",
+    "history": "D:\\JasminSIKD\\colormate-mlops\\reports\\experiments\\resnet18_experiment01\\training_history.csv"
+}

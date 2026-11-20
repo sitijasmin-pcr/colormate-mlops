@@ -2,6 +2,7 @@ from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
 from backend.app.config import settings
 from backend.app.services.image_service import validate_image
+from backend.app.services.model_service import predict_image
 
 
 router = APIRouter()
@@ -13,7 +14,7 @@ def root():
         "message": "Welcome to ColorMate API!",
         "project": "ColorMate MLOps",
         "version": settings.APP_VERSION,
-        "status": "running"
+        "status": "running",
     }
 
 
@@ -21,7 +22,7 @@ def root():
 def health_check():
     return {
         "status": "healthy",
-        "application": settings.APP_NAME
+        "application": settings.APP_NAME,
     }
 
 
@@ -30,41 +31,47 @@ async def upload_customer_photo(
     file: UploadFile = File(...),
     processing_consent: bool = Form(...),
     storage_consent: bool = Form(False),
-    consent_version: str = Form(...)
+    consent_version: str = Form(...),
 ):
     """
-    Receive and validate a customer's photo.
-    Images are processed in memory and are not stored.
+    Validate and analyze a customer photo.
+    The photo is processed in memory and is not stored.
     """
 
+    if not processing_consent:
+        raise HTTPException(
+            status_code=403,
+            detail="Photo processing consent is required.",
+        )
+
+    if not consent_version.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="Consent version is required.",
+        )
+
     try:
-        if not processing_consent:
-            raise HTTPException(
-                status_code=403,
-                detail="Photo processing consent is required."
-            )
-
-        if not consent_version.strip():
-            raise HTTPException(
-                status_code=400,
-                detail="Consent version is required."
-            )
-
         image_bytes = await file.read(5 * 1024 * 1024 + 1)
 
-        validation_result = validate_image(image_bytes)
+        image_info = validate_image(image_bytes)
+
+        prediction = predict_image(image_bytes)
 
         return {
             "status": "success",
-            "message": "Photo uploaded and validated successfully.",
-            "filename": file.filename,
-            "image": validation_result,
+            "message": "Photo analyzed successfully.",
+            "image": image_info,
+            "analysis": prediction,
             "consent": {
                 "processing_consent": processing_consent,
                 "storage_consent": storage_consent,
-                "consent_version": consent_version
+                "consent_version": consent_version,
             },
-            "storage_status": "not_stored"
+            "storage_status": "not_stored",
+            "disclaimer": (
+                "Experimental AI prediction. "
+                "This result is not a definitive personal color assessment."
+            ),
         }
 
     except ValueError as error:
@@ -74,7 +81,19 @@ async def upload_customer_photo(
 
         raise HTTPException(
             status_code=status_code,
-            detail=str(error)
+            detail=str(error),
+        )
+
+    except HTTPException:
+        raise
+
+    except Exception as error:
+        # Keep internal model and filesystem details out of API responses.
+        print(f"ColorMate inference error: {error}")
+
+        raise HTTPException(
+            status_code=500,
+            detail="The image could not be analyzed. Please try again.",
         )
 
     finally:

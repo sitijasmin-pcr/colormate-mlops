@@ -1,0 +1,26 @@
+{
+    "experiment": "ResNet18 Experiment 01",
+    "checkpoint_epoch": 3,
+    "validation_samples": 760,
+    "accuracy": 0.42105263157894735,
+    "macro_f1": 0.4052952764293755,
+    "weighted_f1": 0.41269138892848306,
+    "checkpoint_val_loss": 1.6840806032481948,
+    "checkpoint_val_accuracy": 0.42105263157894735,
+    "checkpoint_val_macro_f1": 0.4052952764293755,
+    "class_names": [
+        "autumn_deep",
+        "autumn_soft",
+        "autumn_warm",
+        "spring_bright",
+        "spring_light",
+        "spring_warm",
+        "summer_cool",
+        "summer_light",
+        "summer_soft",
+        "winter_bright",
+        "winter_cool",
+        "winter_deep"
+    ],
+    "output_directory": "D:\\JasminSIKD\\colormate-mlops\\reports\\experiments\\resnet18_experiment01\\evaluation"
+}
