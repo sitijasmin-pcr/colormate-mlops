@@ -24,9 +24,9 @@ OUTPUT_DIR = ROOT_DIR / "reports" / "dataset_audit"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 DATASET_ID = "menes000/armocromia-12-season"
+
 MAX_IMAGES_PER_PAIR = 5
 
-# Lima pasangan kesalahan terbesar
 TARGET_PAIRS = [
     ("autumn_deep", "winter_deep"),
     ("winter_bright", "winter_deep"),
@@ -45,22 +45,38 @@ if not PREDICTION_PATH.exists():
 
 df = pd.read_csv(PREDICTION_PATH)
 
+required_columns = [
+    "image_index",
+    "label",
+    "predicted_label",
+    "confidence",
+    "correct",
+]
+
+for column in required_columns:
+    if column not in df.columns:
+        raise ValueError(f"Missing column: {column}")
+
+if len(df) != 760:
+    raise ValueError(
+        f"Expected 760 validation samples, got {len(df)}"
+    )
+
 print("=" * 65)
 print("COLORMATE - MISCLASSIFIED IMAGE VISUALIZATION")
 print("=" * 65)
 
-print("Total validation images:", len(df))
-print("Total incorrect predictions:", (~df["correct"]).sum())
+print("Validation images:", len(df))
+print("Incorrect predictions:", (~df["correct"].astype(bool)).sum())
 
 
 # =====================================================
-# LOAD HUGGING FACE DATASET
+# LOAD DATASET
 # =====================================================
 
 print("\nLoading Hugging Face dataset...")
 
 dataset = load_dataset(DATASET_ID)
-
 hf_train = dataset["train"]
 
 
@@ -76,12 +92,14 @@ for true_label, predicted_label in TARGET_PAIRS:
         (df["label"] == true_label)
         & (df["predicted_label"] == predicted_label)
         & (~df["correct"].astype(bool))
-    ].sort_values("image_index")
+    ].copy()
 
-    selected = pair_data.sample(
-        n=min(MAX_IMAGES_PER_PAIR, len(pair_data)),
-        random_state=42
-    ).sort_values("image_index")
+    pair_data = pair_data.sort_values(
+        "confidence",
+        ascending=False
+    )
+
+    selected = pair_data.head(MAX_IMAGES_PER_PAIR)
 
     print(
         f"\n{true_label} -> {predicted_label}: "
@@ -90,15 +108,19 @@ for true_label, predicted_label in TARGET_PAIRS:
     )
 
     for _, row in selected.iterrows():
+
         selected_samples.append({
             "true_label": true_label,
             "predicted_label": predicted_label,
             "image_index": int(row["image_index"]),
+            "confidence": float(row["confidence"]),
         })
 
 
 if not selected_samples:
-    raise ValueError("No matching misclassified samples found.")
+    raise ValueError(
+        "No matching misclassified samples found."
+    )
 
 
 # =====================================================
@@ -111,18 +133,16 @@ n_rows = len(TARGET_PAIRS)
 fig, axes = plt.subplots(
     n_rows,
     n_cols,
-    figsize=(18, 19)
+    figsize=(19, 20)
 )
+
+axes = axes.reshape(n_rows, n_cols)
 
 fig.suptitle(
     "ColorMate CNN - Misclassified Validation Images",
     fontsize=17,
     fontweight="bold"
 )
-
-# Pastikan axes selalu berbentuk 2D
-if n_rows == 1:
-    axes = axes.reshape(1, -1)
 
 sample_position = 0
 
@@ -156,15 +176,15 @@ for row_idx, (true_label, predicted_label) in enumerate(TARGET_PAIRS):
         ax.imshow(image)
 
         ax.set_title(
-            f"True: {true_label}\n"
-            f"Pred: {predicted_label}\n"
+            f"True: {sample['true_label']}\n"
+            f"Pred: {sample['predicted_label']}\n"
+            f"Confidence: {sample['confidence']:.2%}\n"
             f"Index: {image_index}",
             fontsize=8
         )
 
         sample_position += 1
 
-    # Label kelompok pasangan kesalahan
     axes[row_idx, 0].set_ylabel(
         f"{true_label}\n↓\n{predicted_label}",
         fontsize=10,
@@ -172,6 +192,7 @@ for row_idx, (true_label, predicted_label) in enumerate(TARGET_PAIRS):
         labelpad=85,
         va="center"
     )
+
 
 plt.tight_layout(rect=[0.04, 0, 1, 0.96])
 
@@ -187,6 +208,11 @@ plt.savefig(
 )
 
 plt.close(fig)
+
+
+# =====================================================
+# SUMMARY
+# =====================================================
 
 print("\nTotal images visualized:", sample_position)
 print("Contact sheet saved:")
